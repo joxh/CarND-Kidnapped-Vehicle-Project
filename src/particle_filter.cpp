@@ -17,6 +17,10 @@
 
 #include "particle_filter.h"
 
+#include "json.hpp"
+// for convenience
+using json = nlohmann::json;
+
 using namespace std;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
@@ -24,6 +28,41 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
+
+	bool there_is_a_json_init_file = true; // The build time flag for whether to use json
+	bool use_json_init_file;
+	json json_init; //This package is used in main, so I think it's okay
+	if (there_is_a_json_init_file){
+		ifstream json_init_file("params/init.json");
+		json_init_file >> json_init;
+		use_json_init_file = json_init["use_json_init_file"];
+	} else {
+		use_json_init_file = false;
+	}
+
+	if (use_json_init_file){
+		num_particles = json_init["num_particles"];
+	} else {
+		num_particles = 1000;
+	}
+
+	is_initialized = true;
+
+	default_random_engine gen;
+	double std_x = std[0]; // meters
+    double std_y = std[1]; // meters
+    double std_theta = std[2]; //meters
+
+	// This line creates a normal (Gaussian) distribution for x, y and psi.
+	normal_distribution<double> dist_x(x, std_x);
+	normal_distribution<double> dist_y(y, std_y);
+    normal_distribution<double> dist_theta(theta, std_theta);
+
+
+	for (int i = 0; i < num_particles; i++) {
+		
+	}
+
 
 }
 
