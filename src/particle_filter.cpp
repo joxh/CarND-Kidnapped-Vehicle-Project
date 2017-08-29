@@ -48,6 +48,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
 	is_initialized = true;
 
+
+
 	default_random_engine gen;
 	double std_x = std[0]; // meters
     double std_y = std[1]; // meters
@@ -58,9 +60,15 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	normal_distribution<double> dist_y(y, std_y);
     normal_distribution<double> dist_theta(theta, std_theta);
 
+	Particle particle;
 
 	for (int i = 0; i < num_particles; i++) {
-		
+		particle.id = i;
+		particle.x = dist_x(gen);
+		particle.y = dist_y(gen);
+		particle.theta = dist_theta(gen);
+		particle.weight = 1.0;
+		particles.push_back(particle);
 	}
 
 
@@ -71,6 +79,37 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
+	default_random_engine gen;
+
+	double std_pos_x = std_pos[0];
+	double std_pos_y = std_pos[1];
+	double std_theta = std_pos[2];
+
+	double x_new;
+	double y_new;
+	double theta_new;
+
+	for (int i = 0; i < num_particles; i++) {
+
+		if (fabs(yaw_rate) < .000000001){
+			x_new = particles[i].x + velocity*delta_t*cos(particles[i].theta);
+			y_new = particles[i].y + velocity*delta_t*sin(particles[i].theta);
+			theta_new = particles[i].theta + delta_t * yaw_rate;
+		} else {
+			x_new = particles[i].x + (velocity/yaw_rate)*(sin(particles[i].theta + yaw_rate*delta_t) - sin(particles[i].theta));
+			y_new = particles[i].y + (velocity/yaw_rate)*(cos(particles[i].theta) - cos(particles[i].theta + yaw_rate*delta_t));
+			theta_new = particles[i].theta + delta_t * yaw_rate;
+		}
+
+		normal_distribution<double> dist_pos_x(x_new, std_pos_x);
+		normal_distribution<double> dist_pos_y(y_new, std_pos_y);
+		normal_distribution<double> dist_theta(theta_new, std_theta);
+
+		particles[i].x = dist_pos_x(gen);
+		particles[i].y = dist_pos_y(gen);
+		particles[i].theta = fmod(dist_theta(gen) + M_PI, 2.0*M_PI) - M_PI;
+
+	}
 
 }
 
