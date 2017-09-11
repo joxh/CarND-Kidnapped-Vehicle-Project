@@ -33,7 +33,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	bool use_json_init_file;
 	json json_init; //This package is used in main, so I think it's okay
 	if (there_is_a_json_init_file){
-		ifstream json_init_file("params/init.json");
+		ifstream json_init_file("../params/init.json");
 		json_init_file >> json_init;
 		use_json_init_file = json_init["use_json_init_file"];
 	} else {
@@ -107,7 +107,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
 		particles[i].x = dist_pos_x(gen);
 		particles[i].y = dist_pos_y(gen);
-		particles[i].theta = fmod(dist_theta(gen) + M_PI, 2.0*M_PI) - M_PI;
+		particles[i].theta = fmod(dist_theta(gen), 2.0*M_PI);
 
 	}
 
@@ -152,7 +152,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   http://planning.cs.uiuc.edu/node99.html
 	int n_obs = observations.size();
 	std::vector<double> log_weights(num_particles);
-	double total_unnormalized_weights = 0;
+	double max_log_weight;
 	for (int i = 0; i < num_particles; i++){
 		std::vector<LandmarkObs> obs_map_coords(n_obs);
 		for (int j = 0; j < n_obs; j++){
@@ -190,19 +190,22 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
 		double log_weight = log(particles[i].weight);
 		for (int j = 0; j < n_obs; j++){
-			double diff_x = particles[i].x - map_landmarks.landmark_list[obs_map_coords[j].id - 1].x_f;
-			double diff_y = particles[i].y - map_landmarks.landmark_list[obs_map_coords[j].id - 1].y_f;
-			log_weight += (diff_x*diff_x)/(std_landmark[0]*std_landmark[0]);
-			log_weight += (diff_y*diff_y)/(std_landmark[1]*std_landmark[1]);
+			double diff_x = obs_map_coords[j].x - map_landmarks.landmark_list[obs_map_coords[j].id - 1].x_f;
+			double diff_y = obs_map_coords[j].y - map_landmarks.landmark_list[obs_map_coords[j].id - 1].y_f;
+			log_weight += -(diff_x*diff_x)/(2*std_landmark[0]*std_landmark[0]);
+			log_weight += -(diff_y*diff_y)/(2*std_landmark[1]*std_landmark[1]);
 		}
 		log_weights[i] = log_weight;
-		total_unnormalized_weights += exp(log_weight);
+		if (i == 0){
+			max_log_weight = log_weight;
+		} else if (log_weight > max_log_weight){
+			max_log_weight = log_weight;
+		}
+
 	}
 
-	double log_total_unnormalized_weight = log(total_unnormalized_weights);
-
 	for (int i = 0; i < num_particles; i++){
-		particles[i].weight = exp(log_weights[i] - log_total_unnormalized_weight);
+		particles[i].weight = exp(log_weights[i] - max_log_weight);
 	}
 	
 }
