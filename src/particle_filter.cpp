@@ -90,8 +90,8 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
 		particles[i].x = dist_pos_x(gen);
 		particles[i].y = dist_pos_y(gen);
-		particles[i].theta = fmod(dist_theta(gen), 2.0*M_PI);
-
+		//particles[i].theta = fmod(dist_theta(gen), 2.0*M_PI); // I hear normalization is bad for this simulator
+		particles[i].theta = dist_theta(gen);
 	}
 
 }
