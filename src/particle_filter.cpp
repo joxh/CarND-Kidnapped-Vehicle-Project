@@ -29,7 +29,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
-	bool there_is_a_json_init_file = true; // The build time flag for whether to use json
+	bool there_is_a_json_init_file = false; // The build time flag for whether to use json
 	bool use_json_init_file;
 	json json_init; //This package is used in main, so I think it's okay
 	if (there_is_a_json_init_file){
@@ -43,7 +43,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	if (use_json_init_file){
 		num_particles = json_init["num_particles"];
 	} else {
-		num_particles = 1000;
+		num_particles = 50;
 	}
 
 	is_initialized = true;
@@ -188,7 +188,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
 		dataAssociation(landmarks_in_range, obs_map_coords);
 
-		double log_weight = log(particles[i].weight);
+
+		double log_weight = 0;
 		for (int j = 0; j < n_obs; j++){
 			double diff_x = obs_map_coords[j].x - map_landmarks.landmark_list[obs_map_coords[j].id - 1].x_f;
 			double diff_y = obs_map_coords[j].y - map_landmarks.landmark_list[obs_map_coords[j].id - 1].y_f;
