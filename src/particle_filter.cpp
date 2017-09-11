@@ -17,9 +17,6 @@
 
 #include "particle_filter.h"
 
-#include "json.hpp"
-// for convenience
-using json = nlohmann::json;
 
 using namespace std;
 
@@ -29,24 +26,10 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
-	bool there_is_a_json_init_file = false; // The build time flag for whether to use json
-	bool use_json_init_file;
-	json json_init; //This package is used in main, so I think it's okay
-	if (there_is_a_json_init_file){
-		ifstream json_init_file("../params/init.json");
-		json_init_file >> json_init;
-		use_json_init_file = json_init["use_json_init_file"];
-	} else {
-		use_json_init_file = false;
-	}
 
-	if (use_json_init_file){
-		num_particles = json_init["num_particles"];
-	} else {
-		num_particles = 50;
-	}
-
+	num_particles = 50;
 	is_initialized = true;
+
 
 
 
