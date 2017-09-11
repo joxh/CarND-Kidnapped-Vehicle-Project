@@ -13,6 +13,7 @@
         "ios": "cpp",
         "geometry": "cpp",
         "iosfwd": "cpp",
-        "xlocbuf": "cpp"
+        "xlocbuf": "cpp",
+        "random": "cpp"
     }
 }

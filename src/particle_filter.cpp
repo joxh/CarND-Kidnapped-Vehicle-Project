@@ -118,6 +118,23 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
+	int n_obs = observations.size();
+	int n_pred = predicted.size();
+	for (int i = 0; i < n_obs; i++){
+		double x_obs = observations[i].x;
+		double y_obs = observations[i].y;
+		double min_dist2 = (predicted[0].x - x_obs) * (predicted[0].x - x_obs) + (predicted[0].y - y_obs) * (predicted[0].y - y_obs);
+		observations[i].id = predicted[0].id;
+
+		for (int j = 1; j < n_pred; j++){
+			double dist2 = (predicted[j].x - x_obs) * (predicted[j].x - x_obs) + (predicted[j].y - y_obs) * (predicted[j].y - y_obs);
+			if (dist2 < min_dist2){
+				observations[i].id = predicted[j].id;
+				min_dist2 = dist2;
+			}
+		}
+
+	}
 
 }
 
@@ -133,12 +150,81 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+	int n_obs = observations.size();
+	std::vector<double> log_weights(num_particles);
+	double total_unnormalized_weights = 0;
+	for (int i = 0; i < num_particles; i++){
+		std::vector<LandmarkObs> obs_map_coords(n_obs);
+		for (int j = 0; j < n_obs; j++){
+			obs_map_coords[j].x = particles[i].x + observations[j].x * cos(particles[i].theta) - observations[j].y * sin(particles[i].theta);
+
+			obs_map_coords[j].y = particles[i].y + observations[j].x * sin(particles[i].theta) + observations[j].y * cos(particles[i].theta);
+		}
+
+		std::vector<LandmarkObs> landmarks_in_range;
+		double min_dist = dist(particles[i].x, particles[i].y, map_landmarks.landmark_list[0].x_f, map_landmarks.landmark_list[0].y_f);
+		int closest_landmark_index = 0;
+		for (int j = 0; j < map_landmarks.landmark_list.size(); j++){
+			double dist_to_landmark = dist(particles[i].x, particles[i].y, map_landmarks.landmark_list[j].x_f, map_landmarks.landmark_list[j].y_f);
+			if (dist_to_landmark < sensor_range){
+				LandmarkObs landmark;
+				landmark.x = map_landmarks.landmark_list[j].x_f;
+				landmark.y = map_landmarks.landmark_list[j].y_f;
+				landmark.id = map_landmarks.landmark_list[j].id_i;
+				landmarks_in_range.push_back(landmark);
+			}
+			if (dist_to_landmark < min_dist){
+				min_dist = dist_to_landmark;
+				int closest_landmark_index = j;
+			}
+		}
+		if (landmarks_in_range.size() == 0){
+			LandmarkObs landmark;
+			landmark.x = map_landmarks.landmark_list[closest_landmark_index].x_f;
+			landmark.y = map_landmarks.landmark_list[closest_landmark_index].y_f;
+			landmark.id = map_landmarks.landmark_list[closest_landmark_index].id_i;
+			landmarks_in_range.push_back(landmark);
+		}
+
+		dataAssociation(landmarks_in_range, obs_map_coords);
+
+		double log_weight = log(particles[i].weight);
+		for (int j = 0; j < n_obs; j++){
+			double diff_x = particles[i].x - map_landmarks.landmark_list[obs_map_coords[j].id - 1].x_f;
+			double diff_y = particles[i].y - map_landmarks.landmark_list[obs_map_coords[j].id - 1].y_f;
+			log_weight += (diff_x*diff_x)/(std_landmark[0]*std_landmark[0]);
+			log_weight += (diff_y*diff_y)/(std_landmark[1]*std_landmark[1]);
+		}
+		log_weights[i] = log_weight;
+		total_unnormalized_weights += exp(log_weight);
+	}
+
+	double log_total_unnormalized_weight = log(total_unnormalized_weights);
+
+	for (int i = 0; i < num_particles; i++){
+		particles[i].weight = exp(log_weights[i] - log_total_unnormalized_weight);
+	}
+	
 }
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+	vector<Particle> new_particle_list;
+	vector<double> weights(num_particles);
+	for (int i = 0; i < num_particles; i++){
+
+		weights[i] = particles[i].weight;
+	}
+	default_random_engine gen;
+	discrete_distribution<int> dd(weights.begin(), weights.end());
+
+	for (int i = 0; i < num_particles; i++){
+
+		new_particle_list.push_back(particles[dd(gen)]);
+	}
+	particles = new_particle_list;
 
 }
 
